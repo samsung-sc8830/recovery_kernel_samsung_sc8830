@@ -1,0 +1,65 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the pbrp-8.0-los14 branch
+  push:
+    branches: [ pbrp-8.0-los14 ]
+  pull_request:
+    branches: [ pbrp-8.0-los14 ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-18.04
+    #container:
+        #image: ubuntu:14.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      # Runs a single command using the runners shell
+      - name: Setup env
+        run: |
+          sudo apt update
+          sudo dpkg --add-architecture i386
+          sudo apt-get -qq install git ccache automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib python-networkx libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip 
+          wget https://github.com/hendramanudinata03/dtbToolSprd/raw/cm-14.1/dtbtool.c && gcc dtbtool.c -o dtbtool -Wall && chmod +x dtbtool
+          wget https://gitlab.com/KrutosVIP/toolchains/-/raw/main/arm-cortex_a7-linux-gnueabihf-linaro_4.9.3-2015.03-build_2015_03_15.tar.xz
+          mkdir toolchain && cd toolchain && tar -xf ../arm-cortex_a7-linux-gnueabihf-linaro_4.9.3-2015.03-build_2015_03_15.tar.xz
+      # Runs a set of commands using the runners shell
+      - name: Compile kernel
+        run: |
+          make CROSS_COMPILE="$(pwd)/toolchain/arm-cortex_a7-linux-gnueabihf-linaro_4.9.3-2015.03/bin/arm-cortex_a7-linux-gnueabihf-" ARCH=arm SUBARCH=arm clean
+          make CROSS_COMPILE="$(pwd)/toolchain/arm-cortex_a7-linux-gnueabihf-linaro_4.9.3-2015.03/bin/arm-cortex_a7-linux-gnueabihf-" ARCH=arm SUBARCH=arm mrproper
+          make CROSS_COMPILE="$(pwd)/toolchain/arm-cortex_a7-linux-gnueabihf-linaro_4.9.3-2015.03/bin/arm-cortex_a7-linux-gnueabihf-" ARCH=arm SUBARCH=arm twrp_gtel3g_defconfig
+          make CROSS_COMPILE="$(pwd)/toolchain/arm-cortex_a7-linux-gnueabihf-linaro_4.9.3-2015.03/bin/arm-cortex_a7-linux-gnueabihf-" ARCH=arm SUBARCH=arm -j$(nproc --all)
+          find -name *Image*
+          export CROSS_COMPILE="$(pwd)/toolchain/arm-cortex_a7-linux-gnueabihf-linaro_4.9.3-2015.03/bin/arm-cortex_a7-linux-gnueabihf-" && export ARCH=arm && export SUBARCH=arm && ./dtbtool -o arch/arm/boot/dt.img -s 2048 -p scripts/dtc/ arch/arm/boot/dts 
+      - uses: actions/upload-artifact@v2
+        with:
+          name: images
+          path: arch/arm/boot/*Image*
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dtb
+          path: arch/arm/boot/dts/*.dtb
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dtb
+          path: arch/arm/boot/dts/*.dtb
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dt.img
+          path: arch/arm/boot/dt.img
