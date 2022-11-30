@@ -25,7 +25,9 @@ config EXTCON_SAMSUNG
 
 config EXTCON_SM5504
 	bool "SM5504 microUSB Switch"
-	depends on I2C && EXTCON_SAMSUNG
+	depends on I2C && EXTCON_SAMSUNG 
+        select REGMAP_SPI
+        select REGMAP_I2C
 	help
 	  The SM5504 is a USB port accessory detector and switch.
 	  The SM5504 is fully controlled using I2C and enables USB data,
